@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "root",
+    "password": "parsec",
+    "database": "vocab",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "database_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "zrt2rn17i3jelxum",
+    "password": "rqpdku4qlyhx9qed",
+    "database": "jknal33tnbcux9tk",
+    "host": "otmaa16c1i9nwrek.cbetxkdyhwsb.us-east-1.rds.amazonaws.com",
+    "dialect": "mysql"
+  }
+}
