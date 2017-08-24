@@ -6,11 +6,14 @@ var vocabularyDatabase = require("./models");
 
 
 // Global Variables
-var lexiconSize = 1000; // Number of words in the file to process
-var setSize = 200;      // Target # of words per vocab set
+var lexiconSize = 1000;     // Number of words in the file to process
+var setSize = 200;          // Target # of words per vocab set
+var requestInterval = 1000; // Milliseconds between http requests
 var lexicon = [];
 var wordCounter;
+var scrapeCycle;
 
+// Control flow
 vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
  
     fs.readFile("derewo-v-40000g-2009-12-31-0.1", "utf8", function (err, data) {
@@ -18,12 +21,61 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
         lexicon = parseVocabFile(data);
         wordCounter = 0;
 
-        var scrapeCycle = setInterval(scrapeWord, 1000);
+        scrapeCycle = setInterval(scrapeWord, requestInterval);
     });
 });
 
 
 // Functions
+
+function scrapeWord() {
+
+    var currentword = lexicon[wordCounter];
+
+    var urlWord = currentword.replace("ä", "%C3%A4").replace("ö", "%C3%B6").replace("ü", "%C3%BC").replace("Ä", "%C3%84").replace("Ö", "%C3%96").replace("Ü", "%C3%9C").replace("ß", "%C3%9F");
+    var word = currentword.replace("ä", "\u00E4").replace("ö", "\u00F6").replace("ü", "\u00FC").replace("Ä", "\u00C4").replace("Ö", "\u00D6").replace("Ü", "\u00DC").replace("ß", "\u00DF");
+    var URL = "https://de.wiktionary.org/wiki/" + urlWord;
+
+
+    // Get the German wiktionary page HTML for the vocabulary word
+    request(URL, function (error, response, html) {
+
+        var $ = cheerio.load(html);
+
+        var speechPart = $("div#mw-content-text h3 span.mw-headline a").eq(0).text();
+        var setNum = Math.floor(parseInt(wordCounter / setSize)) + 1;
+        
+        switch (speechPart) {
+
+            case "Substantiv":
+                processNoun($, setNum, word);
+                break;
+
+            case "Verb":
+                processVerb($, setNum, word);
+                break;
+
+            case "Adjektiv":
+                processAdj($, setNum, word);
+                break;
+
+            default:
+                skipIt(setNum, word);
+        }
+    });
+
+
+    //
+    console.log("Word " + wordCounter + " = " + word);
+
+    // Increment counter
+    wordCounter++;
+
+    // End
+    if (wordCounter >= lexicon.length) { clearInterval(scrapeCycle); }
+}
+
+
 function processNoun($, setNum, word) {
 
     // All of the rows of the inflection table
@@ -76,7 +128,8 @@ function processNoun($, setNum, word) {
         singular: sing,
         plural: plur,
         english_meaning: english
-    }).catch(function () {
+    }).catch(function (err) {
+        console.log(err.errors.message);
         skipIt(setNum, word);
     });
 }
@@ -103,7 +156,8 @@ function processVerb($, setNum, word) {
         past_participle: pastPart,
         helping_verb: hilfs,
         english_meaning: english
-    }).catch(function () {
+    }).catch(function (err) {
+        console.log(err.errors.message);
         skipIt(setNum, word);
     });
 }
@@ -120,7 +174,8 @@ function processAdj($, setNum, word) {
         vocab_set: setNum,
         adjective: adject,
         english_meaning: english
-    }).catch(function () {
+    }).catch(function (err) {
+        console.log(err.errors.message);
         skipIt(setNum, word);
     });
     
@@ -133,8 +188,8 @@ function skipIt(setNum, skippedWord) {
     vocabularyDatabase.skipped.create({
         vocab_set: setNum,
         word: skippedWord
-    }).catch(function (error) {
-        console.log(error);
+    }).catch(function (err) {
+        console.log(err.errors.message);
     });
 }
 
@@ -184,52 +239,7 @@ function parseVocabFile(dirtyList) {
 }
 
 
-function scrapeWord() {
 
-    var currentword = lexicon[wordCounter];
-
-    var urlWord = currentword.replace("ä", "%C3%A4").replace("ö", "%C3%B6").replace("ü", "%C3%BC").replace("Ä", "%C3%84").replace("Ö", "%C3%96").replace("Ü", "%C3%9C").replace("ß", "%C3%9F");
-    var word = currentword.replace("ä", "\u00E4").replace("ö", "\u00F6").replace("ü", "\u00FC").replace("Ä", "\u00C4").replace("Ö", "\u00D6").replace("Ü", "\u00DC").replace("ß", "\u00DF");
-    var URL = "https://de.wiktionary.org/wiki/" + urlWord;
-
-    
-    // Get the German wiktionary page HTML for the vocabulary word
-    request(URL, function (error, response, html) {
-
-        var $ = cheerio.load(html);
-
-        var speechPart = $("div#mw-content-text h3 span.mw-headline a").text();
-        var setNum = Math.floor(parseInt(wordCounter / setSize)) + 1;
-
-        switch (speechPart) {
-
-            case "Substantiv":
-                processNoun($, setNum, word);
-                break;
-
-            case "Verb":
-                processVerb($, setNum, word);
-                break;
-
-            case "Adjektiv":
-                processAdj($, setNum, word);
-                break;
-
-            default:
-                skipIt(setNum, word);
-        }
-    });
-
-
-    //
-    console.log("Word " + wordCounter + " = " + word);
-
-    // Increment counter
-    wordCounter++;
-
-    // End
-    if (wordCounter >= lexicon.length) {clearInterval(scrapeCycle);}
-}
 
 
 
