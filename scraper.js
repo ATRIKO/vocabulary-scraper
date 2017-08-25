@@ -5,7 +5,7 @@
 var fs = require("fs");
 var vocabularyDatabase = require("./models");
 var inquirer = require("inquirer");
-var functions = require("./functions.js");
+var myFuncs = require("./functions.js");
 
 
 
@@ -14,11 +14,9 @@ var functions = require("./functions.js");
 ///////////////////////////////////////////////
 
 var lexiconSize;
-var setSize = 200;          // Target # of words per vocab set
 var requestInterval = 1000;
 var lexicon = [];
 var wordCounter;
-var scrapeCycle;
 
 
 
@@ -47,19 +45,26 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
                     type: "input",
                     name: "selectedLexiconSize",
                     message: "How many words? (max 40,000)",
-                    validate: functions.validateLexiconSize
+                    validate: myFuncs.validateLexiconSize
 
                 }).then(function (lexiconSize) {
 
                     fs.readFile("derewo-v-40000g-2009-12-31-0.1", "utf8", function (err, vocabFile) {
 
-                        lexicon = functions.parseVocabFile(vocabFile, lexiconSize.selectedLexiconSize);
+                        lexicon = myFuncs.parseVocabFile(vocabFile, lexiconSize.selectedLexiconSize);
                         wordCounter = 0;
+                        var scrapeCycle = setInterval(
 
-                        currentWord = lexicon[wordCounter];
+                            function () {
 
-                        scrapeCycle = setInterval(function () { functions.scrapeWord(currentWord); }, requestInterval);
+                                currentWord = lexicon[wordCounter];
+                                myFuncs.scrapeWord(currentWord);
+                                wordCounter++;
 
+                                if (wordCounter >= lexicon.length) { clearInterval(scrapeCycle); }
+                            },
+                            requestInterval
+                        );
                     });
 
                 });
@@ -73,7 +78,7 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
                     message: "Enter the word."
                 }).then(function (enteredWord) {
 
-                    functions.scrapeWord(enteredWord);
+                    myFuncs.scrapeWord(enteredWord);
 
                 });
                 break;
