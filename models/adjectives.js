@@ -15,12 +15,18 @@ module.exports = function (sequelize, DataTypes) {
 
         adjective: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         },
 
         english_meaning: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         }
 
 	}, {

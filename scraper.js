@@ -58,7 +58,7 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
                             function () {
 
                                 currentWord = lexicon[wordCounter];
-                                myFuncs.scrapeWord(currentWord);
+                                myFuncs.scrapeWord(currentWord, wordCounter);
                                 wordCounter++;
 
                                 if (wordCounter >= lexicon.length) { clearInterval(scrapeCycle); }
@@ -78,7 +78,7 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
                     message: "Enter the word."
                 }).then(function (enteredWord) {
 
-                    myFuncs.scrapeWord(enteredWord);
+                    myFuncs.scrapeWord(enteredWord.page, false);
 
                 });
                 break;

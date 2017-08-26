@@ -15,32 +15,50 @@ module.exports = function (sequelize, DataTypes) {
 
         infinitive: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         },
 
         present: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         },
 
         past: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         },
 
         past_participle: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         },
 
         helping_verb: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isNull: false
+            }
         },
 
         english_meaning: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            validate: {             
+                isNull: false
+            }
         }
 
 	}, {

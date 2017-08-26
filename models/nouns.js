@@ -17,7 +17,6 @@ module.exports = function (sequelize, DataTypes) {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                isAlpha: true,
                 isNull: false
             }
         },
@@ -26,7 +25,6 @@ module.exports = function (sequelize, DataTypes) {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                isAlpha: true,
                 isNull: false
             }
         },
@@ -35,7 +33,6 @@ module.exports = function (sequelize, DataTypes) {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                isAlpha: true,
                 isNull: false
             }
         }

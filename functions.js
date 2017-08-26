@@ -14,24 +14,24 @@ var vocabularyDatabase = require("./models");
 var myFuncs = {
 
     scrapeWord: function (currentWord, count) {
-
-
+        
         var urlWord = currentWord.replace("ä", "%C3%A4").replace("ö", "%C3%B6").replace("ü", "%C3%BC").replace("Ä", "%C3%84").replace("Ö", "%C3%96").replace("Ü", "%C3%9C").replace("ß", "%C3%9F");
         var word = currentWord.replace("ä", "\u00E4").replace("ö", "\u00F6").replace("ü", "\u00FC").replace("Ä", "\u00C4").replace("Ö", "\u00D6").replace("Ü", "\u00DC").replace("ß", "\u00DF");
         var URL = "https://de.wiktionary.org/wiki/" + urlWord;
-
-
-        // Get the German wiktionary page HTML for the vocabulary word
+        
         request(URL, function (error, response, html) {
 
             var $ = cheerio.load(html);
 
             var speechPart = $("div#mw-content-text h3 span.mw-headline a").eq(0).text().trim();
-            var setNum = Math.floor(parseInt(count / 200)) + 1;
 
-            // Console log
-            var requestLog = new Table({ head: ["#", "Set", "Word", "Part of Speech"] });
-            requestLog.push([count, setNum, word, speechPart]);
+            // count is false when testing single page
+            if (count != false) { var setNum = Math.floor(parseInt(count / 200)) + 1; }
+            else { var setNum = false; }
+            
+            var requestLog = new Table({ head: ["#", "Word", "Part of Speech"] });
+            requestLog.push([count, word, speechPart]);
+            console.log(requestLog.toString());
 
             switch (speechPart) {
 
@@ -97,20 +97,27 @@ var myFuncs = {
         });
 
         var sing = rows.eq(rowIndex).children().eq(singColIndex).text().trim();
+        if (!sing) { sing = word; }
         var plur = rows.eq(rowIndex).children().eq(plurColIndex).text().trim();
-        var english = translations($, false);
+        var english = myFuncs.translations($, false);
 
         // Handle definite articles in parenthesis
         var x = sing.indexOf("(");
         var y = sing.indexOf(")");       
-        if (sing.slice(x + 1, y) === "der" || "die" || "das") {
-            sing = sing.replace("(", "").replace(")", "");
-        } else if (x || y === -1) {
-            sing = sing.slice(0, x) + sing.slice(y + 1, sing.length);
-        }
+        if (sing.slice(x + 1, y) === "der" || "die" || "das") { sing = sing.replace("(", "").replace(")", ""); }
+        else if (x || y === -1) { sing = sing.slice(0, x) + sing.slice(y + 1, sing.length); }  
         
+        if (setNum != false) { myFuncs.saveNoun(setNum, sing, plur, english); }     
 
-        // Put in database
+        var requestLog = new Table({ head: ["Set", "Singular", "Plural", "English Translation"] });
+        requestLog.push([setNum, sing, plur, english]);
+        console.log(requestLog.toString());
+
+    },
+
+
+    saveNoun: function (setNum, sing, plur, english) {
+
         vocabularyDatabase.nouns.create({
             vocab_set: setNum,
             singular: sing,
@@ -118,25 +125,35 @@ var myFuncs = {
             english_meaning: english
         }).catch(function (err) {
             console.log(err.errors.message);
-            skipIt(setNum, word);
+            myFuncs.skipIt(setNum, sing);
         });
     },
 
 
     processVerb: function ($, setNum, word) {
-
-
-        // All of the rows of the inflection table
+        
         var rows = $("div#mw-content-text table.inflection-table tbody").children();
         var pres = rows.eq(3).children().eq(1).text().trim();
         var pas = rows.eq(4).children().eq(2).text().trim();
         var pastPart = rows.eq(9).children().eq(0).text().trim();
         var hilfs = rows.eq(9).children().eq(1).text().trim();
         var infin = myFuncs.scrapeName($);
-        var english = translations($, true);
+        if (!infin) { infin = word; }
+        var english = myFuncs.translations($, true);
 
+        if (setNum != false) { myFuncs.saveVerb(setNum, infin, pres, pas, pastPart, hilfs, english); }
+        
+        var requestLog = new Table({ head: ["Set", "Infinitive", "3rd Present", "Paste", "Past Participle", "Helping Verb", "English Translation"] });
+        requestLog.push([setNum, infin, pres, pas, pastPart, hilfs, english]);
+        console.log(requestLog.toString());
+
+    },
+
+
+    saveVerb: function (setNum, infin, pres, pas, pastPart, hilfs, english) {
 
         vocabularyDatabase.verbs.create({
+
             vocab_set: setNum,
             infinitive: infin,
             present: pres,
@@ -145,36 +162,51 @@ var myFuncs = {
             helping_verb: hilfs,
             english_meaning: english
         }).catch(function (err) {
+
             console.log(err.errors.message);
-            skipIt(setNum, word);
+            myFuncs.skipIt(setNum, infin);
         });
     },
 
 
     processAdj: function ($, setNum, word) {
 
-        var adject = scrapeName($);
-        var english = translations($, false);
-        
+        var adject = myFuncs.scrapeName($);
+        var english = myFuncs.translations($, false);
+        if (!adject) { adject = word; }
+
+        if (setNum != false) { myFuncs.saveAdj(setNum, adject, english); }
+
+        var requestLog = new Table({ head: ["Set", "Adjective", "English Translation"] });
+        requestLog.push([setNum, adject, english]);
+        console.log(requestLog.toString());
+
+    },
+
+
+    saveAdj: function (setNum, adject, english) {
 
         vocabularyDatabase.adjectives.create({
+
             vocab_set: setNum,
             adjective: adject,
             english_meaning: english
         }).catch(function (err) {
+
             console.log(err.errors.message);
-            skipIt(setNum, word);
+            myFuncs.skipIt(setNum, adject);
         });
     },
 
 
     skipIt: function (setNum, skippedWord) {
-
-        // Put in skipped table
+        
         vocabularyDatabase.skipped.create({
+
             vocab_set: setNum,
             word: skippedWord
         }).catch(function (err) {
+
             console.log(err.errors.message);
         });
     },
