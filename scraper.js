@@ -8,7 +8,6 @@ var inquirer = require("inquirer");
 var myFuncs = require("./functions.js");
 
 
-
 ///////////////////////////////////////////////
 ////////////// Global Variables ///////////////
 ///////////////////////////////////////////////
@@ -19,7 +18,6 @@ var lexicon = [];
 var wordCounter;
 
 
-
 ///////////////////////////////////////////////
 //////////////// Control Flow /////////////////
 ///////////////////////////////////////////////
@@ -27,7 +25,6 @@ var wordCounter;
 vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
 
     var mainMenu = ["Scrape Top Words", "Test Scrape Single Page"];
-
     inquirer.prompt({
 
         type: "list",
@@ -43,30 +40,18 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
                 inquirer.prompt({
 
                     type: "input",
-                    name: "selectedLexiconSize",
+                    name: "sizeChoice",
                     message: "How many words? (max 40,000)",
                     validate: myFuncs.validateLexiconSize
 
-                }).then(function (lexiconSize) {
+                }).then(function (response) {
 
-                    fs.readFile("derewo-v-40000g-2009-12-31-0.1", "utf8", function (err, vocabFile) {
+                    fs.readFile("derewo-v-40000g-2009-12-31-0.1", "utf8", function (err, file) {
 
-                        lexicon = myFuncs.parseVocabFile(vocabFile, lexiconSize.selectedLexiconSize);
-                        wordCounter = 0;
-                        var scrapeCycle = setInterval(
+                        lexicon = myFuncs.parseVocabFile(file, response.sizeChoice);
+                        myFuncs.scrapeLexicon(lexicon);
 
-                            function () {
-
-                                currentWord = lexicon[wordCounter];
-                                myFuncs.scrapeWord(currentWord, wordCounter);
-                                wordCounter++;
-
-                                if (wordCounter >= lexicon.length) { clearInterval(scrapeCycle); }
-                            },
-                            requestInterval
-                        );
                     });
-
                 });
                 break;
 
@@ -76,9 +61,10 @@ vocabularyDatabase.sequelize.sync({ force: true }).then(function () {
                     type: "input",
                     name: "page",
                     message: "Enter the word."
+
                 }).then(function (enteredWord) {
 
-                    myFuncs.scrapeWord(enteredWord.page, false);
+                    myFuncs.scrapePage(enteredWord.page);
 
                 });
                 break;

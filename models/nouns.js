@@ -15,26 +15,17 @@ module.exports = function (sequelize, DataTypes) {
 
         singular: {
             type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                isNull: false
-            }
+            allowNull: false            
         },
 
         plural: {
             type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                isNull: false
-            }
+            allowNull: false            
         },
 
         english_meaning: {
             type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                isNull: false
-            }
+            allowNull: false            
         }
 
 	}, {

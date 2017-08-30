@@ -8,12 +8,11 @@ module.exports = function(sequelize, DataTypes) {
         },
         word: {
             type: DataTypes.STRING,
-            allowNull: false,
-            unique: true
+            allowNull: false
 		},
         vocab_set: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: true
         }
 	}, {
 		classMethods: {
