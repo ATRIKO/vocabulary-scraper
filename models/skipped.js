@@ -9,7 +9,11 @@ module.exports = function(sequelize, DataTypes) {
         word: {
             type: DataTypes.STRING,
             allowNull: false
-		},
+        },
+        part: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         vocab_set: {
             type: DataTypes.INTEGER,
             allowNull: true

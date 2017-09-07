@@ -60,7 +60,7 @@ var myFuncs = {
         var cleanedWord = rawWord.replace("ä", "\u00E4").replace("ö", "\u00F6").replace("ü", "\u00FC").replace("Ä", "\u00C4").replace("Ö", "\u00D6").replace("Ü", "\u00DC").replace("ß", "\u00DF");
         var URL = "https://de.wiktionary.org/wiki/" + urlWord;
         var canGoInDB = true;
-        
+
         if (typeof wordIndex === "number") {
             var vocabSetNumber = Math.floor((wordIndex / 200) + 1);
         } else {
@@ -74,6 +74,7 @@ var myFuncs = {
 
             var $ = cheerio.load(html);
             var speechPart = $("div#mw-content-text h3 span.mw-headline a").eq(0).text().trim();
+            skippedObject.part = speechPart;
 
             switch (speechPart) {
 
@@ -82,7 +83,7 @@ var myFuncs = {
                     var save = vocabularyDatabase.nouns;
                     var tableSavedTo = "Nouns";
 
-                    var inflectionTableRows = $("div#mw-content-text table.inflection-table tbody tr");
+                    var inflectionTableRows = $("tbody tr", $("div#mw-content-text table.inflection-table").eq(0));  // $("div#mw-content-text table.inflection-table tbody tr");
                     var rowIndex, singColIndex, plurColIndex;
 
                     inflectionTableRows.each(function (i, element) {
@@ -107,8 +108,8 @@ var myFuncs = {
                         }
                     });
 
-                    resultObject.singular = inflectionTableRows.eq(rowIndex).children().eq(singColIndex).text().trim();
-                    resultObject.plural = inflectionTableRows.eq(rowIndex).children().eq(plurColIndex).text().trim();
+                    resultObject.singular = myFuncs.removeParenthesis(inflectionTableRows.eq(rowIndex).children().eq(singColIndex).text().trim());
+                    resultObject.plural = myFuncs.removeParenthesis(inflectionTableRows.eq(rowIndex).children().eq(plurColIndex).text().trim());
                     resultObject.english_meaning = myFuncs.translations($, false);
 
                     break;
@@ -118,9 +119,9 @@ var myFuncs = {
                     var save = vocabularyDatabase.verbs;
                     var tableSavedTo = "Verbs";
 
-                    var rows = $("div#mw-content-text table.inflection-table tbody").children();
+                    var rows = $("tbody", $("div#mw-content-text table.inflection-table").eq(0)).children();
 
-                    resultObject.infinitive = $("h1#firstHeading").text().trim();
+                    resultObject.infinitive = $("h1#firstHeading").eq(0).text().trim();
                     resultObject.present = rows.eq(3).children().eq(1).text().trim();
                     resultObject.past = rows.eq(4).children().eq(2).text().trim();
                     resultObject.past_participle = rows.eq(9).children().eq(0).text().trim();
@@ -134,7 +135,7 @@ var myFuncs = {
                     var save = vocabularyDatabase.adjectives;
                     var tableSavedTo = "Adjectives";
 
-                    resultObject.adjective = $("h1#firstHeading").text().trim();
+                    resultObject.adjective = $("h1#firstHeading").eq(0).text().trim();
                     resultObject.english_meaning = myFuncs.translations($, false);
 
                     break;
@@ -151,7 +152,7 @@ var myFuncs = {
             }
 
             myFuncs.displayScrapedDataAsTable(resultObject, cleanedWord, speechPart, tableSavedTo);
-           
+
             if (canGoInDB === true) {
                 save.create(resultObject);
             } else {
@@ -193,14 +194,33 @@ var myFuncs = {
     },
 
 
+    removeParenthesis: function (noun) {
+        var open = noun.indexOf("(");
+        var close = noun.indexOf(")");
+        if ((open != -1) || (close != -1)) {
+            var ddd = noun.slice((open + 1), close);
+            if ((ddd === "der") || (ddd === "die") || (ddd === "das")) {
+                return noun.replace("(", "").replace(")", "").trim();
+            } else {
+                var newNoun = noun.substring(0, open);
+                newNoun += noun.substring((close + 1), noun.length);
+                return newNoun.trim();
+            }
+        } else {
+            return noun;
+        }
+    },
+
+
     translations: function ($, to) {
-        var trans = $("div#mw-content-text div.mw-collapsible-content table tbody li span[lang=en]");
+        var trans = $("table tbody li span[lang = en]", $("div#mw-content-text div.mw-collapsible-content").eq(0) );
         var english = "";
         trans.each(function (i, elem) {
-
-            if (english.length >= 1) { english = english + ", "; }
-            if (to) { english = english + "to "; }
-            english = english + $(this).text().trim();
+            if (i < 5) {
+                if (english.length >= 1) { english = english + ", "; }
+                if (to) { english = english + "to "; }
+                english = english + $(this).text().trim();
+            }
         });
         return english;
     }
