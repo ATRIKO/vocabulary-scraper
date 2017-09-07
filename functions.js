@@ -74,8 +74,9 @@ var myFuncs = {
 
             var $ = cheerio.load(html);
             var speechPart = $("div#mw-content-text h3 span.mw-headline a").eq(0).text().trim();
-            let advTypes = ["Gradpartikel", "Modaladverb", "Fokuspartikel"];
-            if (advTypes.indexOf(speechPart) != -1) { speechPart = "Adverb"; }
+            let advTypes = ["Gradpartikel", "Modaladverb", "Fokuspartikel", "Temporaladverb"];
+            if (advTypes.indexOf(speechPart) > -1) { speechPart = "Adverb"; }
+            if (speechPart === "Vollverb") { speechPart = "Verb"; }
             skippedObject.part = speechPart;
 
             switch (speechPart) {
@@ -85,7 +86,7 @@ var myFuncs = {
                     var save = vocabularyDatabase.nouns;
                     var tableSavedTo = "Nouns";
 
-                    var inflectionTableRows = $("tbody tr", $("div#mw-content-text table.inflection-table").eq(0));  // $("div#mw-content-text table.inflection-table tbody tr");
+                    var inflectionTableRows = $("tbody tr", $("div#mw-content-text table.inflection-table").eq(0));
                     var rowIndex, singColIndex, plurColIndex;
 
                     inflectionTableRows.each(function (i, element) {
@@ -155,7 +156,19 @@ var myFuncs = {
                 default:////////////////////////////////////////////////////////////////////////////////////
 
                     var tableSavedTo = "Skipped";
+                    resultObject = skippedObject;
                     canGoInDB = false;
+            }
+
+            for (var prop in resultObject) {
+                if (resultObject.hasOwnProperty(prop)) {
+                    var word = resultObject[prop];
+                    var x = word.indexOf("/n");
+                    if (x > -1) {
+                        let firstLineOnly = word.substring(0, x);
+                        resultObject[prop] = firstLineOnly;
+                    }
+                }
             }
 
             if (myFuncs.validateResultObject(resultObject) === false) {
@@ -201,6 +214,10 @@ var myFuncs = {
             }
         }
         var output = new Table({ head: outputHead });
+        for (i = 0; i < outputRow.length; i++) {
+            var elem = outputRow[i];
+            elem = elem.replace(", ", "/n");
+        }
         output.push(outputRow);
         console.log(output.toString());
     },
@@ -209,7 +226,7 @@ var myFuncs = {
     removeParenthesis: function (noun) {
         var open = noun.indexOf("(");
         var close = noun.indexOf(")");
-        if ((open != -1) || (close != -1)) {
+        if ((open > -1) || (close > -1)) {
             var ddd = noun.slice((open + 1), close);
             if ((ddd === "der") || (ddd === "die") || (ddd === "das")) {
                 return noun.replace("(", "").replace(")", "").trim();

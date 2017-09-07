@@ -24,28 +24,24 @@ var wordCounter;
 //////////////// Control Flow /////////////////
 ///////////////////////////////////////////////
 
-
-
-vocabularyDatabase.sequelize.sync({ force: true }).then(() => {
-    topMenu();
-});
+topMenu();
 
 
 function topMenu() {
 
-    var mainMenu = ["Scrape Top Words", "Test Scrape Single Page"];
     inquirer.prompt({
 
         type: "list",
         name: "mainMenuSelection",
         message: "Main Menu",
-        choices: mainMenu
+        choices: ["Scrape Top Words", "Test Scrape Single Page"]
 
-    }).then( selection => {
+    }).then(selection => {
 
-        switch (selection.mainMenuSelection) {
+        vocabularyDatabase.sequelize.sync({ force: true }).then(() => {
 
-            case mainMenu[0]:
+            if (selection.mainMenuSelection === "Scrape Top Words") {
+
                 inquirer.prompt({
 
                     type: "input",
@@ -53,32 +49,28 @@ function topMenu() {
                     message: "How many words? (max 40,000)",
                     validate: myFuncs.validateLexiconSize
 
-                }).then( response => {
+                }).then(response => {
 
                     fs.readFile("derewo-v-40000g-2009-12-31-0.1", "utf8", function (err, file) {
 
                         lexicon = myFuncs.parseVocabFile(file, response.sizeChoice);
                         myFuncs.scrapeLexicon(lexicon);
-
-                    }).then(() => {
-                        topMenu();
                     });
                 });
-                break;
 
-            case mainMenu[1]:
+            } else {
+          
                 inquirer.prompt({
 
                     type: "input",
                     name: "page",
                     message: "Enter the word."
 
-                }).then( enteredWord => {
-
+                }).then(enteredWord => {
+                 
                     myFuncs.scrapePage(enteredWord.page);
-
                 });
-                break;
-        }
+            }
+        });
     });
 }
