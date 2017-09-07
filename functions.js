@@ -74,6 +74,8 @@ var myFuncs = {
 
             var $ = cheerio.load(html);
             var speechPart = $("div#mw-content-text h3 span.mw-headline a").eq(0).text().trim();
+            let advTypes = ["Gradpartikel", "Modaladverb", "Fokuspartikel"];
+            if (advTypes.indexOf(speechPart) != -1) { speechPart = "Adverb"; }
             skippedObject.part = speechPart;
 
             switch (speechPart) {
@@ -136,6 +138,16 @@ var myFuncs = {
                     var tableSavedTo = "Adjectives";
 
                     resultObject.adjective = $("h1#firstHeading").eq(0).text().trim();
+                    resultObject.english_meaning = myFuncs.translations($, false);
+
+                    break;
+
+                case "Adverb":////////////////////////////////////////////////////////////////////////////
+
+                    var save = vocabularyDatabase.adverbs;
+                    var tableSavedTo = "Adverbs";
+
+                    resultObject.adverb = $("h1#firstHeading").eq(0).text().trim();
                     resultObject.english_meaning = myFuncs.translations($, false);
 
                     break;
@@ -213,7 +225,7 @@ var myFuncs = {
 
 
     translations: function ($, to) {
-        var trans = $("table tbody li span[lang = en]", $("div#mw-content-text div.mw-collapsible-content").eq(0) );
+        var trans = $("table tbody li span[lang = en]", $("div#mw-content-text div.mw-collapsible-content").eq(0));
         var english = "";
         trans.each(function (i, elem) {
             if (i < 5) {
