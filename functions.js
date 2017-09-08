@@ -3,6 +3,7 @@
 ///////////////////////////////////////////////
 
 var Table = require("cli-table2");
+var colors = require("colors");
 var request = require("request");
 var cheerio = require("cheerio");
 var vocabularyDatabase = require("./models");
@@ -24,7 +25,7 @@ var myFuncs = {
             var n = vocabArray[i].search(" ");
             vocabArray[i] = vocabArray[i].substring(0, n);
         }
-        var trimmedVocabArray = vocabArray.slice(2, lexiconSize);
+        var trimmedVocabArray = vocabArray.slice(2, (lexiconSize + 2));
         return trimmedVocabArray;
     },
 
@@ -47,7 +48,8 @@ var myFuncs = {
             myFuncs.scrapePage(lexiconArray[counter], counter);
             counter++;
             if (counter < lexiconArray.length) {
-                setTimeout(cycle, 1000);
+                let interval = parseInt(800 + (Math.random() * 800));
+                setTimeout(cycle, interval);
             }
         }
         cycle();
@@ -160,13 +162,15 @@ var myFuncs = {
                     canGoInDB = false;
             }
 
-            for (var prop in resultObject) {
-                if (resultObject.hasOwnProperty(prop)) {
-                    var word = resultObject[prop];
-                    var x = word.indexOf("/n");
-                    if (x > -1) {
-                        let firstLineOnly = word.substring(0, x);
-                        resultObject[prop] = firstLineOnly;
+            // If there is a line break in a word result delete the second line
+            for (var word in resultObject) {
+                if (resultObject.hasOwnProperty(word)) {
+                    if (typeof resultObject[word] === "string") {
+                        var x = resultObject[word].indexOf("\n");
+                        if (x > -1) {
+                            var firstLineOnly = resultObject[word].substring(0, x);
+                            resultObject[word] = firstLineOnly;
+                        }
                     }
                 }
             }
@@ -189,9 +193,9 @@ var myFuncs = {
 
     validateResultObject: function (resultObject) {
 
-        for (var prop in resultObject) {
-            if (resultObject.hasOwnProperty(prop)) {
-                if (resultObject[prop] === "") {
+        for (var word in resultObject) {
+            if (resultObject.hasOwnProperty(word)) {
+                if (resultObject[word] === "") {
                     return false;
                 }
             }
@@ -204,26 +208,41 @@ var myFuncs = {
 
 
     displayScrapedDataAsTable: function (resultObject, cleanedWord, speechPart, tableSavedTo) {
-        var outputHead = ["Word", "Category", "Table"];
+
+        var outputHead = [colors.yellow("Word"), colors.yellow("Speech\nPart"), colors.red("Table")];
         var outputRow = [cleanedWord, speechPart, tableSavedTo];
 
         for (var prop in resultObject) {
             if (resultObject.hasOwnProperty(prop)) {
-                outputHead.push(prop);
+
+                let undersc = prop.indexOf("_");
+                let capProp = prop.charAt(0).toUpperCase() + prop.substring(1);
+                if (undersc > -1) {
+                    capProp = capProp.substring(0, undersc) + "\n" + capProp.charAt(undersc + 1) + capProp.substring(undersc + 2);
+                }
+                outputHead.push(colors.green(capProp));
                 outputRow.push(resultObject[prop]);
             }
         }
-        var output = new Table({ head: outputHead });
+
+        var output = new Table({ style: { head: [] } });
+
+        var commas = new RegExp(", ", "g");
         for (i = 0; i < outputRow.length; i++) {
             var elem = outputRow[i];
-            elem = elem.replace(", ", "/n");
+            if (typeof elem === "string") {
+                outputRow[i] = elem.replace(commas, "\n");
+            }
         }
+
+        output.push(outputHead);
         output.push(outputRow);
         console.log(output.toString());
     },
 
 
     removeParenthesis: function (noun) {
+
         var open = noun.indexOf("(");
         var close = noun.indexOf(")");
         if ((open > -1) || (close > -1)) {
@@ -242,23 +261,31 @@ var myFuncs = {
 
 
     translations: function ($, to) {
-        var trans = $("table tbody li span[lang = en]", $("div#mw-content-text div.mw-collapsible-content").eq(0));
+
+        var transWithDuplicates = $("table tbody li span[lang = en]", $("div#mw-content-text div.mw-collapsible-content").eq(0));
+        var trans = [];
         var english = "";
-        trans.each(function (i, elem) {
-            if (i < 5) {
-                if (english.length >= 1) { english = english + ", "; }
-                if (to) { english = english + "to "; }
-                english = english + $(this).text().trim();
+
+        transWithDuplicates.each(function (i, elem) {
+            var eng = $(this).text().trim();
+            if (trans.indexOf(eng) === -1) {
+                trans.push(eng);
             }
         });
+
+        for (i = 0; ((i < 4) && (i < trans.length)); i++) {
+            if (english.length > 0) { english += ", "; }
+            if (to && (trans[i] != "there is")) { english += "to "; }
+            english += trans[i];
+        }
+
         return english;
     }
-
-
 }
 
 
 module.exports = myFuncs;
+
 
 
 
