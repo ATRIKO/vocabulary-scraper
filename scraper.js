@@ -6,8 +6,6 @@ var fs = require("fs");
 var vocabularyDatabase = require("./models");
 var inquirer = require("inquirer");
 var myFuncs = require("./functions.js");
-var express = require("express");
-var app = express();
 
 
 ///////////////////////////////////////////////
